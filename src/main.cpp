@@ -115,7 +115,7 @@ void setup()
 {
     // prepare serial communication
     Serial.begin(115200);
-    //connectAWS();
+    connectAWS();
 
     // get a new FlowMeter instance for an uncalibrated flow sensor and let them attach their 'interrupt service handler' (ISR) on every rising edge
     Meter1 = new FlowMeter(digitalPinToInterrupt(18), UncalibratedSensor, Meter1ISR, RISING);
