@@ -94,7 +94,12 @@ void connectAWS()
 
     Serial.println("AWS IoT Connected!");
 }
-
+float getCurrentFlowrateWithError(float baseFlowrate){
+    return baseFlowrate + 0.0;
+}
+float getTotalVolumeWithError(float baseVolume){
+    return baseVolume + 0.0;
+}
 void publishMessage()
 {
     StaticJsonDocument<200> doc;
