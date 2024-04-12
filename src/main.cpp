@@ -1,10 +1,38 @@
 #include <Arduino.h>
 #include <FlowMeter.h>
-#include "secrets.h"
-#include <WiFiClientSecure.h>
-#include <MQTTClient.h>
+#include "Credentials.h"
 #include <ArduinoJson.h>
-#include "WiFi.h"
+
+#if !(ESP8266 || ESP32)
+#error This code is intended to run on the ESP8266/ESP32 platform! Please check your Tools->Board setting
+#endif
+
+#define MYSQL_DEBUG_PORT Serial
+
+// Debug Level from 0 to 4
+#define _MYSQL_LOGLEVEL_ 1
+
+#include <MySQL_Generic.h>
+
+#define USING_HOST_NAME true
+
+#if USING_HOST_NAME
+// Optional using hostname, and Ethernet built-in DNS lookup
+char server[] = "projectedwardmysqldatabase.cp25gjyejcfg.us-east-1.rds.amazonaws.com"; // change to your server's hostname/URL
+#else
+IPAddress server(192, 168, 2, 112);
+#endif
+
+uint16_t server_port = 3306; // 3306;
+
+char default_database[] = "projectedwardmysqldatabase"; //"test_arduino";
+char default_table[] = "hello_arduino";                 //"test_arduino";
+
+String default_value = "Hello, Arduino!";
+
+MySQL_Connection conn((Client *)&client);
+
+MySQL_Query *query_mem;
 
 // connect a flow meter to an interrupt pin (see notes on your Arduino model for pin numbers)
 FlowMeter *Meter1;
@@ -35,92 +63,76 @@ void Meter3ISR()
     Meter3->count();
 }
 
-// The MQTT topics that this device should publish/subscribe
-#define AWS_IOT_PUBLISH_TOPIC "esp32/pub"
-#define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
+double meter1Flowrate = 0.0;
+double meter2Flowrate = 0.0;
+double meter3Flowrate = 0.0;
+double meter1Volume = 0.0;
+double meter2Volume = 0.0;
+double meter3Volume = 0.0;
 
-WiFiClientSecure net = WiFiClientSecure();
-MQTTClient client = MQTTClient(256);
-
-void messageHandler(String &topic, String &payload)
+float getCurrentFlowrateWithError(float baseFlowrate)
 {
-    Serial.println("incoming: " + topic + " - " + payload);
-
-    StaticJsonDocument<200> doc;
-    deserializeJson(doc, payload);
-    const char *message = doc["message"];
-}
-
-void connectAWS()
-{
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-    Serial.println("Connecting to Wi-Fi");
-
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(500);
-        Serial.print(".");
-    }
-
-    // Configure WiFiClientSecure to use the AWS IoT device credentials
-    net.setCACert(AWS_CERT_CA);
-    net.setCertificate(AWS_CERT_CRT);
-    net.setPrivateKey(AWS_CERT_PRIVATE);
-
-    // Connect to the MQTT broker on the AWS endpoint we defined earlier
-    client.begin(AWS_IOT_ENDPOINT, 8883, net);
-
-    // Create a message handler
-    client.onMessage(messageHandler);
-
-    Serial.print("Connecting to AWS IOT");
-
-    while (!client.connect(THINGNAME))
-    {
-        Serial.print(".");
-        delay(100);
-    }
-
-    if (!client.connected())
-    {
-        Serial.println("AWS IoT Timeout!");
-        return;
-    }
-
-    // Subscribe to a topic
-    client.subscribe(AWS_IOT_SUBSCRIBE_TOPIC);
-
-    Serial.println("AWS IoT Connected!");
-}
-float getCurrentFlowrateWithError(float baseFlowrate){
     return baseFlowrate + 0.0;
 }
-float getTotalVolumeWithError(float baseVolume){
+float getTotalVolumeWithError(float baseVolume)
+{
     return baseVolume + 0.0;
 }
-void publishMessage()
-{
-    StaticJsonDocument<200> doc;
-    doc["time"] = millis();
-    doc["inlet_flowrate"] = Meter1->getCurrentFlowrate();
-    doc["kitchen_sink_flowrate"] = Meter2->getCurrentFlowrate();
-    doc["shower_flowrate"] = Meter3->getCurrentFlowrate();
-    doc["inlet_volume"] = Meter1->getTotalVolume();
-    doc["kitchen_sink_volume"] = Meter2->getTotalVolume();
-    doc["shower_volume"] = Meter3->getTotalVolume();
-    char jsonBuffer[512];
-    serializeJson(doc, jsonBuffer); // print to client
 
-    client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
+String INSERT_SQL = String("INSERT INTO ") + default_database + "." + default_table + " (meter1Flowrate,meter2Flowrate,meter3Flowrate,meter1Volume,meter2Volume,meter3Volume) VALUES ('" + String(meter1Flowrate) + "','" + String(meter2Flowrate) + "','" + String(meter3Flowrate) + "','" + String(meter1Volume) + "','" + String(meter2Volume) + "','" + String(meter3Volume) + "')";
+//String INSERT_SQL = "INSERT INTO projectedwardmysqldatabase.hello_arduino (meter1Flowrate,meter2Flowrate,meter3Flowrate,meter1Volume,meter2Volume,meter3Volume) VALUES ('" + String(meter1Flowrate) + "','" + String(meter2Flowrate) + "','" + String(meter3Flowrate) + "','" + String(meter1Volume) + "','" + String(meter2Volume) + "','" + String(meter3Volume) + "')";
+
+
+void runInsert()
+{
+    // Initiate the query class instance
+    MySQL_Query query_mem = MySQL_Query(&conn);
+
+    if (conn.connected())
+    {
+        MYSQL_DISPLAY(INSERT_SQL);
+
+        // Execute the query
+        // KH, check if valid before fetching
+        if (!query_mem.execute(INSERT_SQL.c_str()))
+        {
+            MYSQL_DISPLAY("Insert error");
+        }
+        else
+        {
+            MYSQL_DISPLAY("Data Inserted.");
+        }
+    }
+    else
+    {
+        MYSQL_DISPLAY("Disconnected from Server. Can't insert.");
+    }
 }
 
 void setup()
 {
     // prepare serial communication
     Serial.begin(115200);
-    connectAWS();
+
+    MYSQL_DISPLAY1("\nStarting Basic_Insert_ESP on", ARDUINO_BOARD);
+    MYSQL_DISPLAY(MYSQL_MARIADB_GENERIC_VERSION);
+
+    // Begin WiFi section
+    MYSQL_DISPLAY1("Connecting to", ssid);
+
+    WiFi.begin(ssid, pass);
+
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(500);
+        MYSQL_DISPLAY0(".");
+    }
+
+    // print out info about the connection:
+    MYSQL_DISPLAY1("Connected to network. My IP address is:", WiFi.localIP());
+
+    MYSQL_DISPLAY3("Connecting to SQL Server @", server, ", Port =", server_port);
+    MYSQL_DISPLAY5("User =", user, ", PW =", password, ", DB =", default_database);
 
     // get a new FlowMeter instance for an uncalibrated flow sensor and let them attach their 'interrupt service handler' (ISR) on every rising edge
     Meter1 = new FlowMeter(digitalPinToInterrupt(18), UncalibratedSensor, Meter1ISR, RISING);
@@ -142,11 +154,27 @@ void loop()
     Meter2->tick(period);
     Meter3->tick(period);
 
+    meter1Flowrate = Meter1->getCurrentFlowrate();
+    meter2Flowrate = Meter2->getCurrentFlowrate();
+    meter3Flowrate = Meter3->getCurrentFlowrate();
+    meter1Volume = Meter1->getTotalVolume();
+    meter2Volume = Meter2->getTotalVolume();
+    meter3Volume = Meter3->getTotalVolume();
+
     // output some measurement result
     Serial.println("Meter 1 currently " + String(Meter1->getCurrentFlowrate()) + " l/min, " + String(Meter1->getTotalVolume()) + " l total.");
     Serial.println("Meter 2 currently " + String(Meter2->getCurrentFlowrate()) + " l/min, " + String(Meter2->getTotalVolume()) + " l total.");
     Serial.println("Meter 3 currently " + String(Meter3->getCurrentFlowrate()) + " l/min, " + String(Meter3->getTotalVolume()) + " l total.");
 
-    publishMessage();
-    client.loop();
+    // if (conn.connect(server, server_port, user, password))
+    if (conn.connectNonBlocking(server, server_port, user, password) != RESULT_FAIL)
+    {
+        delay(500);
+        runInsert();
+        conn.close(); // close the connection
+    }
+    else
+    {
+        MYSQL_DISPLAY("\nConnect failed. Trying again on next iteration.");
+    }
 }
