@@ -25,10 +25,8 @@ IPAddress server(192, 168, 2, 112);
 
 uint16_t server_port = 3306; // 3306;
 
-char default_database[] = "projectedwardmysqldatabase"; //"test_arduino";
-char default_table[] = "hello_arduino";                 //"test_arduino";
-
-String default_value = "Hello, Arduino!";
+char default_database[] = "projectedwardmysqldatabase";
+char default_table[] = "iot_water_consumption";
 
 MySQL_Connection conn((Client *)&client);
 
