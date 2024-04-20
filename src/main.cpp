@@ -79,7 +79,7 @@ float getTotalVolumeWithError(float baseVolume)
     return baseVolume + 0.0;
 }
 
-String INSERT_SQL = String("INSERT INTO ") + default_database + "." + default_table + " (id,meter1Flowrate,meter2Flowrate,meter3Flowrate,meter1Volume,meter2Volume,meter3Volume) VALUES ('" + String(id) + "','" + String(meter1Flowrate) + "','" + String(meter2Flowrate) + "','" + String(meter3Flowrate) + "','" + String(meter1Volume) + "','" + String(meter2Volume) + "','" + String(meter3Volume) + "')";
+String INSERT_SQL = String("INSERT INTO ") + default_database + "." + default_table + " (id,meter1Flowrate,meter2Flowrate,meter3Flowrate,meter1Volume,meter2Volume,meter3Volume) VALUES ('" + String(random(1000, 9000)) + "','" + String(meter1Flowrate) + "','" + String(meter2Flowrate) + "','" + String(meter3Flowrate) + "','" + String(meter1Volume) + "','" + String(meter2Volume) + "','" + String(meter3Volume) + "')";
 // String INSERT_SQL = "INSERT INTO projectedwardmysqldatabase.hello_arduino (meter1Flowrate,meter2Flowrate,meter3Flowrate,meter1Volume,meter2Volume,meter3Volume) VALUES ('" + String(meter1Flowrate) + "','" + String(meter2Flowrate) + "','" + String(meter3Flowrate) + "','" + String(meter1Volume) + "','" + String(meter2Volume) + "','" + String(meter3Volume) + "')";
 
 void runInsert()
@@ -155,7 +155,7 @@ void loop()
     Meter2->tick(period);
     Meter3->tick(period);
 
-    id = random(1000, 9000);
+    //id = random(1000, 9000);
 
     meter1Flowrate = Meter1->getCurrentFlowrate();
     meter2Flowrate = Meter2->getCurrentFlowrate();
