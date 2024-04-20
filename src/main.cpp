@@ -61,6 +61,8 @@ void Meter3ISR()
     Meter3->count();
 }
 
+int id = 0;
+
 double meter1Flowrate = 0.0;
 double meter2Flowrate = 0.0;
 double meter3Flowrate = 0.0;
@@ -77,9 +79,8 @@ float getTotalVolumeWithError(float baseVolume)
     return baseVolume + 0.0;
 }
 
-String INSERT_SQL = String("INSERT INTO ") + default_database + "." + default_table + " (meter1Flowrate,meter2Flowrate,meter3Flowrate,meter1Volume,meter2Volume,meter3Volume) VALUES ('" + String(meter1Flowrate) + "','" + String(meter2Flowrate) + "','" + String(meter3Flowrate) + "','" + String(meter1Volume) + "','" + String(meter2Volume) + "','" + String(meter3Volume) + "')";
-//String INSERT_SQL = "INSERT INTO projectedwardmysqldatabase.hello_arduino (meter1Flowrate,meter2Flowrate,meter3Flowrate,meter1Volume,meter2Volume,meter3Volume) VALUES ('" + String(meter1Flowrate) + "','" + String(meter2Flowrate) + "','" + String(meter3Flowrate) + "','" + String(meter1Volume) + "','" + String(meter2Volume) + "','" + String(meter3Volume) + "')";
-
+String INSERT_SQL = String("INSERT INTO ") + default_database + "." + default_table + " (id,meter1Flowrate,meter2Flowrate,meter3Flowrate,meter1Volume,meter2Volume,meter3Volume) VALUES ('" + String(id) + "','" + String(meter1Flowrate) + "','" + String(meter2Flowrate) + "','" + String(meter3Flowrate) + "','" + String(meter1Volume) + "','" + String(meter2Volume) + "','" + String(meter3Volume) + "')";
+// String INSERT_SQL = "INSERT INTO projectedwardmysqldatabase.hello_arduino (meter1Flowrate,meter2Flowrate,meter3Flowrate,meter1Volume,meter2Volume,meter3Volume) VALUES ('" + String(meter1Flowrate) + "','" + String(meter2Flowrate) + "','" + String(meter3Flowrate) + "','" + String(meter1Volume) + "','" + String(meter2Volume) + "','" + String(meter3Volume) + "')";
 
 void runInsert()
 {
@@ -140,6 +141,8 @@ void setup()
 
     // do this setup step for every  FlowMeter and ISR you have defined, depending on how many you need
     Meter3 = new FlowMeter(digitalPinToInterrupt(21), UncalibratedSensor, Meter3ISR, RISING);
+
+    randomSeed(analogRead(34));
 }
 
 void loop()
@@ -152,6 +155,8 @@ void loop()
     Meter2->tick(period);
     Meter3->tick(period);
 
+    id = random(1000, 9000);
+
     meter1Flowrate = Meter1->getCurrentFlowrate();
     meter2Flowrate = Meter2->getCurrentFlowrate();
     meter3Flowrate = Meter3->getCurrentFlowrate();
@@ -160,6 +165,9 @@ void loop()
     meter3Volume = Meter3->getTotalVolume();
 
     // output some measurement result
+    Serial.println("id " + String(id));
+    Serial.println("Meter 2 currently " + String(Meter2->getCurrentFlowrate()) + " l/min, " + String(Meter2->getTotalVolume()) + " l total.");
+    Serial.println("Meter 3 currently " + String(Meter3->getCurrentFlowrate()) + " l/min, " + String(Meter3->getTotalVolume()) + " l total.");
     Serial.println("Meter 1 currently " + String(Meter1->getCurrentFlowrate()) + " l/min, " + String(Meter1->getTotalVolume()) + " l total.");
     Serial.println("Meter 2 currently " + String(Meter2->getCurrentFlowrate()) + " l/min, " + String(Meter2->getTotalVolume()) + " l total.");
     Serial.println("Meter 3 currently " + String(Meter3->getCurrentFlowrate()) + " l/min, " + String(Meter3->getTotalVolume()) + " l total.");
