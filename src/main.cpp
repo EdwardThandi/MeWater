@@ -77,7 +77,7 @@ float getTotalVolumeWithError(float baseVolume)
     return baseVolume + 0.0;
 }
 
-String INSERT_SQL = String("INSERT INTO ") + default_database + "." + default_table + " (meter1Flowrate,meter2Flowrate,meter3Flowrate,meter1Volume,meter2Volume,meter3Volume) VALUES ('" + String(meter1Flowrate) + "','" + String(meter2Flowrate) + "','" + String(meter3Flowrate) + "','" + String(meter1Volume) + "','" + String(meter2Volume) + "','" + String(meter3Volume) + "')";
+String INSERT_SQL = String("INSERT INTO ") + default_database + "." + default_table + " (meter1Flowrate,meter2Flowrate,meter3Flowrate,meter1Volume,meter2Volume,meter3Volume) VALUES ('" + String(Meter1->getCurrentFlowrate()) + "','" + String(meter2Flowrate) + "','" + String(meter3Flowrate) + "','" + String(meter1Volume) + "','" + String(meter2Volume) + "','" + String(meter3Volume) + "')";
 
 void runInsert()
 {
